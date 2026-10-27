@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
@@ -33,9 +34,9 @@ return new class extends Migration
             $table->timestamp('active_at')->nullable();
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
-
-            $table->unique(['agence_id', 'action', 'filtre', 'version'])->nullsNotDistinct();
         });
+        // une version par action et par filtre (filtre vide compris) : index sur COALESCE, compatible PostgreSQL < 15
+        DB::statement("create unique index wf_circuits_agence_action_filtre_version_unique on wf_circuits (agence_id, action, coalesce(filtre, ''), version)");
 
         Schema::create('wf_etapes', function (Blueprint $table) {
             $table->id();

@@ -48,8 +48,10 @@ return new class extends Migration
         // le nom d'un profil n'est unique qu'au sein d'une agence
         Schema::table('roles', function (Blueprint $table) {
             $table->dropUnique(['name', 'guard_name']);
-            $table->unique(['agence_id', 'name', 'guard_name'])->nullsNotDistinct();
         });
+        // unicité où « sans agence » (plateforme) compte comme une valeur : index sur COALESCE,
+        // compatible avec toutes les versions de PostgreSQL (NULLS NOT DISTINCT exige PostgreSQL 15+)
+        DB::statement('create unique index roles_agence_id_name_guard_name_unique on roles (coalesce(agence_id, 0), name, guard_name)');
 
         Schema::table('menu', function (Blueprint $table) {
             $table->string('code', 60)->nullable()->unique()->after('id_menu');
@@ -137,8 +139,8 @@ return new class extends Migration
             $table->dropColumn(['parent_id', 'code', 'icone', 'description', 'flag_is_admin']);
         });
         Schema::table('menu', fn (Blueprint $table) => $table->dropColumn(['code', 'description']));
+        DB::statement('drop index if exists roles_agence_id_name_guard_name_unique');
         Schema::table('roles', function (Blueprint $table) {
-            $table->dropUnique(['agence_id', 'name', 'guard_name']);
             $table->dropConstrainedForeignId('agence_id');
             $table->dropColumn(['description', 'page_accueil']);
             $table->unique(['name', 'guard_name']);

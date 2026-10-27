@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
@@ -28,9 +29,10 @@ return new class extends Migration
             $table->string('dernier_test_statut', 20)->nullable();
             $table->text('dernier_test_message')->nullable();
             $table->timestamps();
-
-            $table->unique(['agence_id', 'code'])->nullsNotDistinct();
         });
+        // unicité où « sans agence » (plateforme) compte comme une valeur : index sur COALESCE,
+        // compatible avec toutes les versions de PostgreSQL (NULLS NOT DISTINCT exige PostgreSQL 15+)
+        DB::statement('create unique index canaux_agence_id_code_unique on canaux (coalesce(agence_id, 0), code)');
 
         Schema::create('modeles_messages', function (Blueprint $table) {
             $table->id();
